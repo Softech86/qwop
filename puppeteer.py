@@ -3,6 +3,7 @@ import json
 import random
 import time
 from PIL import Image
+import numpy as np 
 
 config = {}
 with open('config.json', 'r') as f:
@@ -22,6 +23,9 @@ lose = False
 
 counter = 0
 
+bg = Image.open("screenshots\\bg.png")
+bgArr = np.array(bg)
+
 while True:
     operation = {}
     keys = ['q', 'w', 'o', 'p']
@@ -36,9 +40,21 @@ while True:
     print(res['lose'], res['score'], time.time() - t0)
     lose = res['lose']
     data = bytearray(res['image']['data'])
+    img = Image.open(Buffer(data))
+    imgCrop = img.crop((110, 65, 445, 400))
+    imgCropArr = np.array(imgCrop)
+
+    isBg = np.all(imgCropArr == bgArr, axis=2)
+    imgCropArr[isBg] = [0, 0, 0, 0]
+    imgCropArr[318:, :] = np.zeros((17, 335, 4))
+    imgCropArr[:10, :20] = np.zeros((10, 20, 4))
+    imgClear = Image.fromarray(imgCropArr)
+    imgClear = imgClear.convert(mode='L')
+    imgClear = imgClear.resize((84, 84), resample=Image.LANCZOS)
 
     with open('screenshots/%d.png' % counter, 'wb') as f:
         counter += 1
-        f.write(data)
+        # f.write(data)
+        imgClear.save(f)
     
     # Image.open(Buffer(data)).show()
