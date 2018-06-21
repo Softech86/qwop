@@ -4,6 +4,7 @@ import random
 import time
 from PIL import Image
 import numpy as np 
+from pyocr import pyocr
 
 config = {}
 with open('config.json', 'r') as f:
@@ -19,11 +20,14 @@ class Buffer:
     def read(self):
         return self.data
 
+tool = pyocr.get_available_tools()[0]
+print("ocr tool =", tool)
+
 lose = False
 
 counter = 0
 
-bg = Image.open("screenshots\\bg.png")
+bg = Image.open("images\\bg.png")
 bgArr = np.array(bg)
 
 while True:
@@ -37,24 +41,36 @@ while True:
     
     t0 = time.time()
     res = operate(operation)
-    print(res['lose'], res['score'], time.time() - t0)
     lose = res['lose']
     data = bytearray(res['image']['data'])
     img = Image.open(Buffer(data))
-    imgCrop = img.crop((110, 65, 445, 400))
-    imgCropArr = np.array(imgCrop)
+    img = img.crop((30, 0, 210, 180)) # 180 * 180
+    imgOcr = img.crop((40, 0, 140, 15))
 
-    isBg = np.all(imgCropArr == bgArr, axis=2)
-    imgCropArr[isBg] = [0, 0, 0, 0]
-    imgCropArr[318:, :] = np.zeros((17, 335, 4))
-    imgCropArr[:10, :20] = np.zeros((10, 20, 4))
-    imgClear = Image.fromarray(imgCropArr)
-    imgClear = imgClear.convert(mode='L')
-    imgClear = imgClear.resize((84, 84), resample=Image.LANCZOS)
+    # 去除背景，灰度，调整至 84 x 84
+    imgArr = np.array(img)
+    isBg = np.all(imgArr == bgArr, axis=2)
+    imgArr[isBg] = np.ones(4) * 255
+    imgArr[:15, :] = np.ones((15, 180, 4)) * 255
+    imgArr[:25, :10] = np.ones((25, 10, 4)) * 255
+    img = Image.fromarray(imgArr)
+    img = img.convert(mode='L')
+    img = img.resize((84, 84), resample=Image.LANCZOS)
+
+    # ocr
+    scoreStr = tool.image_to_string(imgOcr)
+    scoreStr = scoreStr.split(' ')[0].split('m')[0].replace('o', '0').replace('n', '0').replace('s', '6').replace('L', '1.').replace('l', '1')
+    score = None
+    try:
+        score = float(scoreStr)
+    except ValueError as e:
+        print(e)
 
     with open('screenshots/%d.png' % counter, 'wb') as f:
         counter += 1
-        # f.write(data)
-        imgClear.save(f)
+        img.save(f)
+    with open('screenshots/%d_ocr.png' % counter, 'wb') as f:
+        imgOcr.save(f)
+
+    print(counter, res['lose'], score, time.time() - t0)
     
-    # Image.open(Buffer(data)).show()
