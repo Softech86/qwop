@@ -34,7 +34,7 @@ const ocr = path => new Promise((resolve, reject) => {
 
 async function parseScreenshot (screenshot) {
   const ps = await pixels(screenshot)
-  const center = ps.hi(164 / 2, 133 / 2).lo(148 / 2, 117 / 2).data // [148:164, 117:133]
+  const center = ps.hi(164, 133).lo(148, 117).data // [148:164, 117:133]
 
   const centerCount = center.reduce((s, x) => s + x, 0) / center.length
   console.log(centerCount)
@@ -46,10 +46,10 @@ async function parseScreenshot (screenshot) {
 
   // await sharp(screenshot)
   //   .extract({
-  //     top: parseInt(21 / 2),
-  //     left: parseInt(130 / 2),
-  //     width: parseInt(370 / 2),
-  //     height: parseInt(30 / 2)
+  //     top: parseInt(21),
+  //     left: parseInt(130),
+  //     width: parseInt(370),
+  //     height: parseInt(30)
   //   })
   //   .toFile('score.png')
 
@@ -63,10 +63,10 @@ async function parseScreenshot (screenshot) {
 
   const image = await sharp(screenshot)
     .extract({
-      top: parseInt(20 / 2),
-      height: parseInt(360 / 2),
-      left: parseInt(60 / 2),
-      width: parseInt(520 / 2)
+      top: parseInt(20),
+      height: parseInt(360),
+      left: parseInt(120),
+      width: parseInt(360)
     })
     .toBuffer()
 
@@ -121,7 +121,7 @@ async function parseScreenshot (screenshot) {
 
     Promise.all(promises)
     console.log(' operation duration: ', -t0 + (t0 = new Date().getTime()))
-    const screenshot = await page.screenshot({clip: {x: 0, y: 0, width: 640 / 2, height: 400 / 2}})
+    const screenshot = await page.screenshot({clip: {x: 0, y: 0, width: 640, height: 400}})
     console.log(' screenshot duration: ', -t0 + (t0 = new Date().getTime()))
     // console.log(screenshot, screenshot.byteLength, screenshot.length, screenshot.toString())
     const res = await parseScreenshot(screenshot)
