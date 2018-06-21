@@ -43,23 +43,22 @@ while True:
     res = operate(operation)
     lose = res['lose']
     data = bytearray(res['image']['data'])
-    img = Image.open(Buffer(data))
-    img = img.crop((30, 0, 210, 180)) # 180 * 180
-    imgOcr = img.crop((40, 0, 140, 15))
+    img = Image.open(Buffer(data)) # 360 * 360
+    imgOcr = img.crop((80, 0, 280, 30))
 
-    # 去除背景，灰度，调整至 84 x 84
+    # 去除背景，灰度，调整至 80 x 80
     imgArr = np.array(img)
     isBg = np.all(imgArr == bgArr, axis=2)
     imgArr[isBg] = np.ones(4) * 255
-    imgArr[:15, :] = np.ones((15, 180, 4)) * 255
-    imgArr[:25, :10] = np.ones((25, 10, 4)) * 255
+    imgArr[:30, 80:280] = np.ones((30, 200, 4)) * 255
+    imgArr[:45, :5] = np.ones((45, 5, 4)) * 255
     img = Image.fromarray(imgArr)
     img = img.convert(mode='L')
-    img = img.resize((84, 84), resample=Image.LANCZOS)
+    img = img.resize((80, 80), resample=Image.LANCZOS)
 
     # ocr
     scoreStr = tool.image_to_string(imgOcr)
-    scoreStr = scoreStr.split(' ')[0].split('m')[0].replace('o', '0').replace('n', '0').replace('s', '6').replace('L', '1.').replace('l', '1')
+    scoreStr = scoreStr.split(' ')[0].replace('O', '0').replace('o', '0')
     score = None
     try:
         score = float(scoreStr)
