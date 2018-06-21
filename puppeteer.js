@@ -34,36 +34,49 @@ const ocr = path => new Promise((resolve, reject) => {
 
 async function parseScreenshot (screenshot) {
   const ps = await pixels(screenshot)
-  const center = ps.hi(164, 133).lo(148, 117).data // [148:164, 117:133]
-  const centerCount = center.reduce((s, x) => s + x, 0) + ''
-  const lose = centerCount[1] === '5'
+  const center = ps.hi(164 / 2, 133 / 2).lo(148 / 2, 117 / 2).data // [148:164, 117:133]
+
+  const centerCount = center.reduce((s, x) => s + x, 0) / center.length
+  console.log(centerCount)
+  const lose = (centerCount > 140)
 
   let scoreText = null
-  await sharp(screenshot)
-    .extract({
-      top: 21,
-      left: 130,
-      width: 370,
-      height: 30
-    })
-    .toFile('score.png')
-  scoreText = await ocr('score.png')
+
+  let t0 = new Date().getTime()
+
+  // await sharp(screenshot)
+  //   .extract({
+  //     top: parseInt(21 / 2),
+  //     left: parseInt(130 / 2),
+  //     width: parseInt(370 / 2),
+  //     height: parseInt(30 / 2)
+  //   })
+  //   .toFile('score.png')
+
+  // console.log('   parseScreenshot.getOcrImage duration: ', -t0 + (t0 = new Date().getTime()))
+
+  // scoreText = await ocr('score.png')
+
+  // console.log('   parseScreenshot.ocr duration: ', -t0 + (t0 = new Date().getTime()))
+
+  // scoreText = scoreText.replace(/o|O/g, 0).replace(/l|i|I/g, 1).replace(/L/g, '1.')
 
   const image = await sharp(screenshot)
     .extract({
-      // top: 100,
-      // height: 300,
-      top: 0,
-      height: 400,
-      left: 0,
-      width: 640
+      top: parseInt(20 / 2),
+      height: parseInt(360 / 2),
+      left: parseInt(60 / 2),
+      width: parseInt(520 / 2)
     })
     .toBuffer()
 
+  console.log('   parseScreenshot.sharpScreenshot duration: ', -t0 + (t0 = new Date().getTime()))
+
+  console.log('Score Text: ', scoreText)
   return {
     image,
-    lose,
-    score: parseFloat(scoreText)
+    lose
+    // score: parseFloat(scoreText)
   }
 }
 
@@ -85,6 +98,7 @@ async function parseScreenshot (screenshot) {
   Bus.operate = async operation => {
     console.log(`Operation: `, operation)
 
+    let t0 = new Date().getTime()
     const promises = []
     for (let key in operation) {
       if (key === 'restart') {
@@ -96,19 +110,22 @@ async function parseScreenshot (screenshot) {
         const duration = operation[key]
         key = key.toUpperCase()
         promises.push((async () => {
-          console.log('keydown', key)
+          // console.log('keydown', key)
           await page.keyboard.down(`Key${key}`)
           await sleep(duration)
-          console.log('keyup', key)
+          // console.log('keyup', key)
           await page.keyboard.up(`Key${key}`)
         })())
       }
     }
 
     Promise.all(promises)
-    const screenshot = await page.screenshot({clip: {x: 0, y: 0, width: 640, height: 400}})
+    console.log(' operation duration: ', -t0 + (t0 = new Date().getTime()))
+    const screenshot = await page.screenshot({clip: {x: 0, y: 0, width: 640 / 2, height: 400 / 2}})
+    console.log(' screenshot duration: ', -t0 + (t0 = new Date().getTime()))
     // console.log(screenshot, screenshot.byteLength, screenshot.length, screenshot.toString())
     const res = await parseScreenshot(screenshot)
+    console.log(' parseScreenshot duration: ', -t0 + (t0 = (new Date().getTime())))
     return res
   }
 
@@ -119,9 +136,12 @@ async function parseScreenshot (screenshot) {
 // Koa
 app.use(async ctx => {
   const operation = ctx.request.query
+  console.log('---'.repeat(10) + '\n\n')
   console.log(operation)
 
+  let t0 = new Date().getTime()
   const res = await Bus.operate(operation)
+  console.log('Koa duration: ', -t0 + (t0 = (new Date().getTime())))
 
   ctx.status = 200
   ctx.type = 'png'

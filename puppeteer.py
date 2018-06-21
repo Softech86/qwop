@@ -33,7 +33,7 @@ while True:
     
     t0 = time.time()
     res = operate(operation)
-    print(res['lose'], res['score'], time.time() - t0)
+    print(res['lose'], time.time() - t0)
     lose = res['lose']
     data = bytearray(res['image']['data'])
 
