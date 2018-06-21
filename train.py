@@ -11,6 +11,7 @@ import random
 import time
 from BrainDQN import BrainDQN
 import numpy as np
+from pyocr import pyocr
 
 config = {}
 with open('config.json', 'r') as f:
@@ -26,96 +27,120 @@ class Buffer:
     def read(self):
         return self.data
 
+# while True:
+#     operation = {}
+#     keys = ['q', 'w', 'o', 'p']
+#     random.shuffle(keys)
 
-
-
-while True:
-    operation = {}
-    keys = ['q', 'w', 'o', 'p']
-    random.shuffle(keys)
-
-    for key in keys[0:random.randint(1, 4)]: # 0:1/2/3/4, 前1个/2个/3个/4个键
-        operation.update({key: random.randint(2, 5) * 100})
-    if lose:
-        operation.update({'restart': True})
+#     for key in keys[0:random.randint(1, 4)]: # 0:1/2/3/4, 前1个/2个/3个/4个键
+#         operation.update({key: random.randint(2, 5) * 100})
+#     if lose:
+#         operation.update({'restart': True})
     
-    t0 = time.time()
-    res = operate(operation)
-    print(res['lose'], res['score'], time.time() - t0)
-    lose = res['lose']
-    data = bytearray(res['image']['data'])
+#     t0 = time.time()
+#     res = operate(operation)
+#     print(res['lose'], res['score'], time.time() - t0)
+#     lose = res['lose']
+#     data = bytearray(res['image']['data'])
 
 
-# preprocess raw image to 84*84 gray image
-def preprocess(observation, bgArr, dimension=3):  
-	img = Image.open(Buffer(observation))
-    imgCrop = img.crop((110, 65, 445, 400))
-    imgCropArr = np.array(imgCrop)
+# preprocess raw image to 80*80 gray image
+def preprocess(observation, bgArr, tool, dimension=3):  
+    img = Image.open(Buffer(observation))
+    img = img.crop((30, 0, 210, 180))
+    imgOcr = img.crop((40, 0, 140, 15))
 
-    isBg = np.all(imgCropArr == bgArr, axis=2)
-    imgCropArr[isBg] = [0, 0, 0, 0]
-    imgCropArr[318:, :] = np.zeros((17, 335, 4))
-    imgCropArr[:10, :20] = np.zeros((10, 20, 4))
-    imgClear = Image.fromarray(imgCropArr)
+    # 去除背景，灰度，调整至 80 x 80
+    imgArr = np.array(img)
+    isBg = np.all(imgArr == bgArr, axis=2)
+    imgArr[isBg] = np.ones(4) * 255
+    imgArr[:15, :] = np.ones((15, 180, 4)) * 255
+    imgArr[:25, :10] = np.ones((25, 10, 4)) * 255
+    img = Image.fromarray(imgArr)
+    img = img.convert(mode='L')
+    img = img.resize((80, 80), resample=Image.LANCZOS)
+    # with open('screenshots/%d.png' % counter, 'wb') as f:
+    #     counter += 1
+    #     f.write(observation)
+    # img.show()
+    observation = np.array(img)
 
-    imgClear = imgClear.convert(mode='L')
-    imgClear = imgClear.resize((84, 84), resample=Image.LANCZOS)
+    # OCR
+    scoreStr = tool.image_to_string(imgOcr)
+    scoreStr = scoreStr.split(' ')[0].split('m')[0].replace('o', '0').replace('n', '0').replace('s', '6').replace('L', '1.').replace('l', '1')
+    score = None
+    try:
+        score = float(scoreStr)
+    except ValueError as e:
+        print(e)
 
-    observation = np.array(imgClear)
-
+    if dimension == 3:
+        observation = np.reshape(observation, (80, 80, 1))
     if dimension == 2:
-        return observation
-    elif dimension == 3:
-	    return np.reshape(observation,(84, 84, 1))
+        observation = np.reshape(observation, (80, 80))
+
+    return (observation, score)
 
 def play():
     keys = ['q', 'w', 'o', 'p']
-    bg = Image.open("screenshots\\bg.png")
+
+    bg = Image.open("images\\bg.png")
     bgArr = np.array(bg)
-    counter = 0
 
-	# Step 1: init BrainDQN
-	actions = 16
-	brain = BrainDQN(actions)
+    tool = pyocr.get_available_tools()[0]
+    print("ocr tool =", tool)
 
-	# Step 2: init game
+    # Step 1: init BrainDQN
+    actions = 16
+    brain = BrainDQN(actions)
+
+    # Step 2: init game
     res0 = operate({}) # do nothing, just get initial observation
-    prevAction = 0
-    reward0 = res0['score']
+    prevAction = np.zeros(16)
+    prevAction[0] = 1
     prevTerminal0 = res0['lose']
     observation0 = bytearray(res0['image']['data'])
-    observation0 = preprocess(observation0, bgArr, dimension=2)
+    (observation0, reward0) = preprocess(observation0, bgArr, tool, dimension=2)
+    prevPrevTotalReward = reward0
     brain.setInitState(observation0)
 
 	# Step 3: run the game
-	while True:
+    while True:
         t0 = time.time()
         
         # get action from brain
-		action = brain.getAction()
+        action = brain.getAction()
         actionIdx = np.argmax(action)
         operation = {}
         for i in range(4):
             if actionIdx & (1 << i):
-                operation.update({keys[i]: 500})
+                operation.update({keys[i]: 300})
 
         # act and observe
         res = operate(operation)
-        prevReward = res['score']
+
+        # if lose, restart and observe again
         prevTerminal = res['lose']
+        if prevTerminal:
+            operation.clear()
+            operation.update({'restart': True})
+            res = operate(operation)
+        
         observation = bytearray(res['image']['data'])
-        observation = preprocess(observation, bgArr)
-        with open('screenshots/%d.png' % counter, 'wb') as f:
-            counter += 1
-            f.write(observation)
+        (observation, prevTotalReward) = preprocess(observation, bgArr, tool)
     
-		brain.setPerception(observation, prevAction, prevReward, prevTerminal)
-        print(prevTerminal, prevReward, time.time() - t0)
+        if prevTotalReward:
+            prevReward = prevTotalReward - prevPrevTotalReward - 0.002
+            prevPrevTotalReward = prevTotalReward
+        else:
+            prevReward = -0.002
+        brain.setPerception(observation, prevAction, prevReward, prevTerminal)
+        print(prevTerminal, prevTotalReward, time.time() - t0)
 
         perv_action = action
-
+        
 def main():
-	play()
+    play()
 
 if __name__ == '__main__':
-	main()
+    main()
