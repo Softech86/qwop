@@ -4,10 +4,10 @@
   "description": "",
   "main": "puppeteer.js",
   "scripts": {
-    "server": "python -m SimpleHTTPServer 8000 &",
+    "server": "npx http-server -p 8000 &",
     "puppeteer": "node puppeteer.js",
     "stop": "lsof -i:8000 | cut -d ' ' -f2 | xargs kill -9",
-    "start": "npm run stop && npm run server && npm run puppeteer"
+    "start": "npm run server && npm run puppeteer"
   },
   "author": "",
   "license": "ISC",

@@ -71,10 +71,10 @@ async function parseScreenshot (screenshot) {
 ;(async () => {
   const browser = await puppeteer.launch({
     headless: false,
-    args: [
-      `--disable-extensions-except=${PEPPER}`,
-      `--load-extension=${PEPPER}`
-    ]
+    // args: [
+    //   `--disable-extensions-except=${PEPPER}`,
+    //   `--load-extension=${PEPPER}`
+    // ]
   })
   const page = await browser.newPage()
   await page.goto('http://localhost:8000/game/', {waitUntil: 'domcontentloaded'})
