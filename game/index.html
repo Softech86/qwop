@@ -9,12 +9,23 @@
 </head>
 
 <body>
-    <object type="application/x-shockwave-flash" data="athletics.swf" width="640" height="400" id="gameContent" style="visibility: visible;"></object>
-    
-    <div></div>
+    <object type="application/x-shockwave-flash" data="athletics.swf" width="320" height="200" id="gameContent" style="visibility: visible;"></object>
+
+    <div id="selector"></div>
     <style>
-        html, body {
+        html,
+        body {
             margin: 0;
+        }
+
+        #selector {
+            position: absolute;
+            background: wheat;
+            opacity: .3;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
         }
     </style>
 </body>
