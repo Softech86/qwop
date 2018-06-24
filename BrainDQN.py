@@ -8,16 +8,18 @@ import tensorflow as tf
 import numpy as np 
 import random
 from collections import deque 
+import time
 
 # Hyper Parameters:
 FRAME_PER_ACTION = 1
 GAMMA = 0.99 # decay rate of past observations
 OBSERVE = 50. # timesteps to observe before training # 100
-EXPLORE = 1500. # frames over which to anneal epsilon
-FINAL_EPSILON = 0.0 # final value of epsilon
-INITIAL_EPSILON = 0.3 # starting value of epsilon
+EXPLORE = 500000. # frames over which to anneal epsilon
+FINAL_EPSILON = 0.05 # final value of epsilon
+INITIAL_EPSILON = 0.5 # starting value of epsilon
 REPLAY_MEMORY = 5000 # number of previous transitions to remember
 BATCH_SIZE = 32 # size of minibatch
+SAVE_EVERY = 1000 # to save the network every how many iteration
 
 class BrainDQN:
 
@@ -110,15 +112,16 @@ class BrainDQN:
 			self.stateInput : state_batch
 			})
 
-		# save network every 5000 iteration
-		if self.timeStep % 5000 == 0:
+		# save network every SAVE_EVERY iteration
+		if self.timeStep % SAVE_EVERY == 0:
 			self.saver.save(self.session, 'saved_networks/' + 'network' + '-dqn', global_step = self.timeStep)
+			print("saved network at %d" % int(time.time()))
 
 		
 	def setPerception(self,nextObservation,action,reward,terminal):
 		#newState = np.append(nextObservation,self.currentState[:,:,1:],axis = 2)
 		newState = np.append(self.currentState[:,:,1:],nextObservation,axis = 2)
-		print('newState =', newState.shape)
+		# print('newState =', newState.shape)
 		self.replayMemory.append((self.currentState, action, reward, newState, terminal))
 		if len(self.replayMemory) > REPLAY_MEMORY:
 			self.replayMemory.popleft()
