@@ -1,33 +1,98 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=900, height=device-height, maximum-scale=1.0, minimum-scale=0.5, initial-scale=0.8, user-scalable=no"
+	/>
+	<title>QWOP</title>
+	<style type="text/css">
+		#gameContent {
+			padding: 0;
+			margin: 0;
+			background-color: #111111;
+			width: 640px;
+			height: 400px;
+		}
+	</style>
+
+	<script type="text/javascript" src="./howler.js"></script>
+	<script type="text/javascript" src="./swfobject.js"></script>
+	<script type="text/javascript">
+		var refreshIntervalId;
+		var windowWidth;
+
+		function getParameterByName(name) {
+			var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+			return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+		}
+
+		var webgl = 'true'
+
+
+		window.onload = function () {
+
+			var playerVersion = swfobject.getFlashPlayerVersion();
+			var container = document.getElementById('gameContent');
+			//this is the rubbish we have to deal with to make stuff work on mobile browsers, ugh. I hate you.
+			if (document.addEventListener) {
+				document.addEventListener('touchmove', function (e) {
+					e.preventDefault();
+				}, false);
+
+				if ((playerVersion.major > 9) && (!webgl)) {} else {
+					document.documentElement.addEventListener('keydown', function (e) {
+						if ((e.keycode || e.which) == 32) {
+							e.preventDefault();
+						}
+					}, false);
+				}
+
+			} else if (document.attachEvent) {
+				document.attachEvent('touchmove', function (e) {
+					e.preventDefault();
+				}, false);
+				if ((playerVersion.major > 9) && (!webgl)) {} else {
+					document.attachEvent('keydown', function (e) {
+						if ((e.keycode || e.which) == 32) {
+							e.preventDefault();
+						}
+					}, false);
+				}
+			}
+
+			var gamejs = document.createElement('script');
+			gamejs.type = 'text/javascript';
+			gamejs.src = "./QWOP.min.js";
+			container.appendChild(gamejs);
+
+		};
+		window.paused = false
+	</script>
 </head>
 
 <body>
-    <object type="application/x-shockwave-flash" data="athletics.swf" width="640" height="400" id="gameContent" style="visibility: visible;"></object>
 
-    <div id="selector"></div>
-    <style>
-        html,
-        body {
-            margin: 0;
-        }
+	<div id="gameContent"></div>
 
-        #selector {
-            position: absolute;
-            background: wheat;
-            opacity: .3;
-            top: 0;
-            left: 0;
-            width: 0;
-            height: 0;
-        }
-    </style>
+	<style>
+		html,
+		body {
+			margin: 0;
+		}
+
+		#selector {
+			position: absolute;
+			background: wheat;
+			opacity: .3;
+			top: 0;
+			left: 0;
+			width: 0;
+			height: 0;
+		}
+	</style>
 </body>
 
 </html>

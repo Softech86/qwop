@@ -4,7 +4,7 @@ import random
 import time
 from PIL import Image
 import numpy as np 
-from pyocr import pyocr
+# from pyocr import pyocr
 
 config = {}
 with open('config.json', 'r') as f:
@@ -20,14 +20,14 @@ class Buffer:
     def read(self):
         return self.data
 
-tool = pyocr.get_available_tools()[0]
-print("ocr tool =", tool)
+# tool = pyocr.get_available_tools()[0]
+# print("ocr tool =", tool)
 
 lose = False
 
 counter = 0
 
-bg = Image.open("images\\bg.png")
+bg = Image.open("images/bg.png")
 bgArr = np.array(bg)
 
 while True:
@@ -35,7 +35,7 @@ while True:
     keys = ['q', 'w', 'o', 'p']
     random.shuffle(keys)
     for key in keys[0:random.randint(1, 4)]:
-        operation.update({key: random.randint(2, 5) * 100})
+        operation.update({key: random.randint(2, 5) * 10})
     if lose:
         operation.update({'restart': True})
     
@@ -57,19 +57,21 @@ while True:
     img = img.resize((80, 80), resample=Image.LANCZOS)
 
     # ocr
-    scoreStr = tool.image_to_string(imgOcr)
-    scoreStr = scoreStr.split(' ')[0].replace('O', '0').replace('o', '0')
-    score = None
-    try:
-        score = float(scoreStr)
-    except ValueError as e:
-        print(e)
+    # scoreStr = tool.image_to_string(imgOcr)
+    # scoreStr = scoreStr.split(' ')[0].replace('O', '0').replace('o', '0')
+    # score = None
+    # try:
+    #     score = float(scoreStr)
+    # except ValueError as e:
+    #     print(e)
 
     with open('screenshots/%d.png' % counter, 'wb') as f:
         counter += 1
         img.save(f)
-    with open('screenshots/%d_ocr.png' % counter, 'wb') as f:
-        imgOcr.save(f)
+    # with open('screenshots/%d_ocr.png' % counter, 'wb') as f:
+    #     imgOcr.save(f)
 
-    print(counter, res['lose'], score, time.time() - t0)
+    print(counter, res['lose'], res['score'], time.time() - t0)
+
+    # time.sleep(1)
     

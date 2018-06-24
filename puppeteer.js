@@ -5,13 +5,20 @@ const getPixels = require('get-pixels')
 const tesseract = require('node-tesseract')
 const sharp = require('sharp')
 
+const readline = require('readline')
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+})
+
+
 const config = JSON.parse(fs.readFileSync('config.json'))
-puppeteer.use(require('puppeteer-extra-plugin-flash')())
+
 const app = new Koa()
 const Bus = {
   buffer: ''
 }
-const PEPPER = './PepperFlash'
+
 const sleep = t => new Promise(resolve => setTimeout(resolve, t))
 const pixels = buffer => new Promise((resolve, reject) => {
   getPixels(buffer, 'image/png', function (err, pixels) {
@@ -19,15 +26,6 @@ const pixels = buffer => new Promise((resolve, reject) => {
       reject(err)
     } else {
       resolve(pixels)
-    }
-  })
-})
-const ocr = path => new Promise((resolve, reject) => {
-  tesseract.process(path, function (err, text) {
-    if (err) {
-      reject(err)
-    } else {
-      resolve(text)
     }
   })
 })
@@ -40,7 +38,7 @@ async function parseScreenshot (screenshot) {
   console.log(centerCount)
   const lose = (centerCount > 140)
 
-  let scoreText = null
+  // let scoreText = null
 
   let t0 = new Date().getTime()
 
@@ -72,7 +70,7 @@ async function parseScreenshot (screenshot) {
 
   console.log('   parseScreenshot.sharpScreenshot duration: ', -t0 + (t0 = new Date().getTime()))
 
-  console.log('Score Text: ', scoreText)
+  // console.log('Score Text: ', scoreText)
   return {
     image,
     lose
@@ -83,28 +81,34 @@ async function parseScreenshot (screenshot) {
 // puppeteer
 ;(async () => {
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: false
     // args: [
     //   `--disable-extensions-except=${PEPPER}`,
     //   `--load-extension=${PEPPER}`
     // ]
   })
   const page = await browser.newPage()
-  await page.goto('http://localhost:8000/game/', {waitUntil: 'domcontentloaded'})
+  await page.goto('http://localhost:8000/game', {waitUntil: 'domcontentloaded'})
   await sleep(2000)
-  page.mouse.click(10, 10)
+  await page.mouse.click(300, 300)
+  // await sleep(1000)
+  // await page.mouse.click(10, 10)
   console.log('Game Loaded.')
+  await page.evaluateHandle(() => window.paused = true)
 
   Bus.operate = async operation => {
     console.log(`Operation: `, operation)
 
     let t0 = new Date().getTime()
+
+    await page.evaluateHandle(() => window.paused = false)
+
     const promises = []
     for (let key in operation) {
       if (key === 'restart') {
         promises.push((async () => {
           console.log('restart')
-          await page.keyboard.down(`Space`)
+          await page.keyboard.press(`Space`)
         })())
       } else {
         const duration = operation[key]
@@ -119,16 +123,27 @@ async function parseScreenshot (screenshot) {
       }
     }
 
-    Promise.all(promises)
+    await Promise.all(promises)
     console.log(' operation duration: ', -t0 + (t0 = new Date().getTime()))
     const screenshot = await page.screenshot({clip: {x: 0, y: 0, width: 640, height: 400}})
+    page.evaluateHandle(() => window.paused = true)
+    
     console.log(' screenshot duration: ', -t0 + (t0 = new Date().getTime()))
     // console.log(screenshot, screenshot.byteLength, screenshot.length, screenshot.toString())
     const res = await parseScreenshot(screenshot)
     console.log(' parseScreenshot duration: ', -t0 + (t0 = (new Date().getTime())))
+    Object.assign(res, {
+      score: await page.evaluateHandle(() => window.score).then(h => h.jsonValue())
+    })
     return res
   }
-
+  rl.on('line', line => {
+    try {
+      console.log(eval(line))
+    } catch (err) {
+      console.log(err)
+    }
+  })
   // console.log(await Bus.operate())
   // await browser.close()
 })()
