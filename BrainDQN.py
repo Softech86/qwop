@@ -84,7 +84,9 @@ class BrainDQN:
 		checkpoint = tf.train.get_checkpoint_state("saved_networks")
 		if checkpoint and checkpoint.model_checkpoint_path:
 				self.saver.restore(self.session, checkpoint.model_checkpoint_path)
+				self.timeStep = int(checkpoint.model_checkpoint_path.split("-")[-1])
 				print ("Successfully loaded:", checkpoint.model_checkpoint_path)
+				print("timeStep =", self.timeStep)
 		else:
 				print ("Could not find old network weights")
 
@@ -114,7 +116,7 @@ class BrainDQN:
 
 		# save network every SAVE_EVERY iteration
 		if self.timeStep % SAVE_EVERY == 0:
-			self.saver.save(self.session, 'saved_networks/' + 'network' + '-dqn', global_step = self.timeStep)
+			self.saver.save(self.session, 'saved_networks/' + 'network' + '-dqn', global_step=self.timeStep)
 			print("saved network at %d" % int(time.time()))
 
 		
@@ -125,7 +127,7 @@ class BrainDQN:
 		self.replayMemory.append((self.currentState, action, reward, newState, terminal))
 		if len(self.replayMemory) > REPLAY_MEMORY:
 			self.replayMemory.popleft()
-		if self.timeStep > OBSERVE:
+		if self.timeStep > OBSERVE and len(self.replayMemory) > BATCH_SIZE:
 			# Train the network
 			self.trainQNetwork()
 
