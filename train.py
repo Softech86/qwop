@@ -96,7 +96,7 @@ def play(debug=False):
         if terminal:
             nextObservation = bytearray(res['image']['data'])
             nextObservation = preprocess(nextObservation, bgArr)
-            brain.setPerception(nextObservation, action, -10, terminal)
+            brain.setPerception(nextObservation, action, -10, res['score'], terminal)
             res = operate({'restart': True})
             prevReward = 0
             action = np.zeros(16)
@@ -108,7 +108,7 @@ def play(debug=False):
         nextObservation = preprocess(nextObservation, bgArr)
         totalReward = res['score']
         stepReward = totalReward - prevReward - 0.001
-        brain.setPerception(nextObservation, action, stepReward, terminal)
+        brain.setPerception(nextObservation, action, stepReward, totalReward, terminal)
         
         prevReward = totalReward
 

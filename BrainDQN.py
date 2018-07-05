@@ -1,14 +1,9 @@
-# -----------------------------
-# File: Deep Q-Learning Algorithm
-# Author: Flood Sung
-# Date: 2016.3.21
-# -----------------------------
-
 import tensorflow as tf 
 import numpy as np 
 import random
 from collections import deque 
 import time
+import os
 
 # Hyper Parameters:
 FRAME_PER_ACTION = 1
@@ -19,7 +14,7 @@ FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 0.5 # starting value of epsilon
 REPLAY_MEMORY = 5000 # number of previous transitions to remember
 BATCH_SIZE = 32 # size of minibatch
-SAVE_EVERY = 1000 # to save the network every how many iteration
+SAVE_EVERY = 100 # to save the network every how many iteration
 
 class BrainDQN:
 
@@ -29,7 +24,8 @@ class BrainDQN:
 		# init some parameters
 		self.timeStep = 0
 		self.epsilon = INITIAL_EPSILON
-		self.actions = actions # 传入的2，我的应该是4？
+		self.actions = actions # number of actions, 16
+		self.scores = []
 		# init Q network
 		self.createQNetwork()
 
@@ -61,12 +57,12 @@ class BrainDQN:
 		h_conv3 = tf.nn.relu(self.conv2d(h_conv2,W_conv3,1) + b_conv3)
 		h_conv3_flat = tf.reshape(h_conv3,(-1, 1600))
 		h_fc1 = tf.nn.relu(tf.matmul(h_conv3_flat,W_fc1) + b_fc1)
-		# print("h_conv1=", h_conv1)
-		# print("h_pool1=", h_pool1)
-		# print("h_conv2=", h_conv2)
-		# print("h_conv3=", h_conv3)
-		# print("h_conv3_flat=", h_conv3_flat)
-		# print("h_fc1=", h_fc1)
+		print("h_conv1=", h_conv1)
+		print("h_pool1=", h_pool1)
+		print("h_conv2=", h_conv2)
+		print("h_conv3=", h_conv3)
+		print("h_conv3_flat=", h_conv3_flat)
+		print("h_fc1=", h_fc1)
 
 		# Q Value layer
 		self.QValue = tf.matmul(h_fc1, W_fc2) + b_fc2
@@ -120,7 +116,7 @@ class BrainDQN:
 			print("saved network at %d" % int(time.time()))
 
 		
-	def setPerception(self,nextObservation,action,reward,terminal):
+	def setPerception(self, nextObservation, action, reward, totalScore, terminal):
 		#newState = np.append(nextObservation,self.currentState[:,:,1:],axis = 2)
 		newState = np.append(self.currentState[:,:,1:],nextObservation,axis = 2)
 		# print('newState =', newState.shape)
@@ -130,6 +126,21 @@ class BrainDQN:
 		if self.timeStep > OBSERVE and len(self.replayMemory) > BATCH_SIZE:
 			# Train the network
 			self.trainQNetwork()
+		if terminal:
+			self.scores.append(totalScore)
+		if self.timeStep % SAVE_EVERY == 0:
+			# save the max/avg scores during this period
+			if len(self.scores) != 0:
+				maxScore = np.max(self.scores)
+				avgScore = np.mean(self.scores)
+				if not os.path.exists('scores.txt'):
+					with open('scores.txt','w') as f:
+						f.write("timeStep, maxScore, avgScore\n")
+				with open('scores.txt','a') as f:
+					f.write("%d, %f, %f\n" % (self.timeStep, maxScore, avgScore))
+				print("%d: maxScore = %f, avgScore = %f" % (self.timeStep, maxScore, avgScore))
+				print(self.scores)
+				self.scores.clear()
 
 		self.currentState = newState
 		self.timeStep += 1
@@ -156,7 +167,7 @@ class BrainDQN:
 
 	def setInitState(self,observation):
 		self.currentState = np.stack((observation, observation, observation, observation), axis = 2)
-		print('self.currentState =', self.currentState.shape)
+		# print('self.currentState =', self.currentState.shape)
 
 	def weight_variable(self,shape):
 		initial = tf.truncated_normal(shape, stddev = 0.01)
